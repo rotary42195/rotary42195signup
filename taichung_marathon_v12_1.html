@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>台中馬拉松社 活動報名系統</title>
+
+<!-- ══════════════════════════════════════════════════════
+  🔥 FIREBASE 設定說明（第一次使用請完成以下步驟）
+  
+  1. 前往 https://console.firebase.google.com/
+  2. 建立新專案（例如：taichung-marathon）
+  3. 進入「Realtime Database」→「建立資料庫」
+  4. 選擇「以測試模式啟動」（之後可設定規則）
+  5. 複製資料庫 URL（格式：https://your-project-default-rtdb.asia-southeast1.firebasedatabase.app）
+  6. 進入「專案設定」→「一般」→ 複製 apiKey、projectId 等設定
+  7. 將下方 FIREBASE_CONFIG 填入您的設定值
+
+  ⚠️  填完後即可部署到 GitHub Pages，所有使用者資料即時同步！
+══════════════════════════════════════════════════════ -->
+
+<style>
+/* ── 全域 CSS 變數 ── */
+:root{
+  --font-sans: -apple-system, BlinkMacSystemFont, "Noto Sans TC", "PingFang TC", sans-serif;
+  --color-text-primary: #1a1a1a;
+  --color-text-secondary: #666;
+  --color-text-danger: #A32D2D;
+  --color-text-info: #185FA5;
+  --color-background-primary: #fff;
+  --color-background-secondary: #f5f5f5;
+  --color-background-danger: #fff0f0;
+  --color-background-info: #e6f1fb;
+  --color-border-tertiary: #e0e0e0;
+  --color-border-secondary: #c8c8c8;
+  --color-border-danger: #E24B4A;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+.app{font-family:var(--font-sans);min-height:600px}
+.header{background:#1a3a2a;color:#fff;padding:.875rem 1rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.header-left{display:flex;align-items:center;gap:10px}
+.logo{width:34px;height:34px;background:#4caf76;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
+.header h1{font-size:15px;font-weight:500;color:#fff}
+.header p{font-size:11px;color:rgba(255,255,255,0.6);margin-top:1px}
+.nav-tabs{display:flex;gap:4px}
+.nav-tab{padding:6px 13px;border-radius:6px;font-size:13px;cursor:pointer;border:none;background:transparent;color:rgba(255,255,255,0.6);transition:all .15s}
+.nav-tab.active{background:rgba(255,255,255,0.15);color:#fff}
+.nav-tab:hover:not(.active){color:#fff;background:rgba(255,255,255,0.08)}
+.view{display:none;padding:1.25rem 1rem}
+.view.active{display:block}
+.sec-title{font-size:12px;font-weight:500;color:var(--color-text-secondary);margin-bottom:1rem}
+.activity-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(272px,1fr));gap:14px}
+.card{background:var(--color-background-primary);border:1.5px solid var(--color-border-tertiary);border-radius:12px;overflow:hidden}
+.card-head{padding:.875rem 1.125rem .75rem;border-bottom:1px solid rgba(0,0,0,0.07)}
+.card.ctype-meeting{background:#F5F4FF;border-color:#C5C0F0}
+.card.ctype-meeting .card-head{border-bottom-color:#C5C0F0}
+.card.ctype-run{background:#F2F9EA;border-color:#B6D98A}
+.card.ctype-run .card-head{border-bottom-color:#B6D98A}
+.card.ctype-social{background:#EEF6FD;border-color:#A8CFEE}
+.card.ctype-social .card-head{border-bottom-color:#A8CFEE}
+.card.ctype-trip{background:#FEF8EE;border-color:#F0CEAA}
+.card.ctype-trip .card-head{border-bottom-color:#F0CEAA}
+.card.ctype-race{background:#FEF1F1;border-color:#F0AAAA}
+.card.ctype-race .card-head{border-bottom-color:#F0AAAA}
+.card.ctype-other{background:#F5F4F0;border-color:#D0CEC6}
+.card.ctype-other .card-head{border-bottom-color:#D0CEC6}
+.atag{display:inline-block;font-size:11px;padding:2px 8px;border-radius:20px;margin-bottom:7px;font-weight:500}
+.tag-meeting{background:#EEEDFE;color:#534AB7}
+.tag-run{background:#EAF3DE;color:#3B6D11}
+.tag-social{background:#E6F1FB;color:#185FA5}
+.tag-trip{background:#FAEEDA;color:#854F0B}
+.tag-race{background:#FCEBEB;color:#A32D2D}
+.tag-other{background:#F1EFE8;color:#5F5E5A}
+.card-title{font-size:14px;font-weight:500;color:var(--color-text-primary);margin-bottom:3px}
+.card-sub{font-size:12px;color:var(--color-text-secondary)}
+.card-location{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--color-text-secondary);margin-top:4px}
+.card-location a{font-size:11px;color:#185FA5;text-decoration:none;padding:1px 6px;border:0.5px solid #A8CFEE;border-radius:10px;background:#E6F1FB;white-space:nowrap}
+.card-location a:hover{background:#CCE4F6}
+.card-body{padding:.75rem 1.125rem}
+.prog-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px}
+.prog-label{font-size:12px;color:var(--color-text-secondary)}
+.prog-bar{height:4px;background:rgba(0,0,0,0.08);border-radius:2px;margin-bottom:9px;overflow:hidden}
+.prog-fill{height:100%;border-radius:2px;background:#4caf76;transition:width .3s}
+.prog-fill.full{background:#E24B4A}
+.names-row{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:9px;min-height:20px}
+.nbadge{font-size:11px;padding:2px 7px;border-radius:12px;background:rgba(0,0,0,0.07);color:var(--color-text-secondary)}
+.card-btns{display:flex;gap:7px}
+.reg-btn{flex:1;padding:7px;border:1.5px solid #b0b0b0;background:transparent;border-radius:8px;font-size:13px;cursor:pointer;color:var(--color-text-primary);transition:all .15s}
+.reg-btn:hover:not(:disabled){background:rgba(0,0,0,0.05)}
+.reg-btn:disabled{opacity:.5;cursor:default}
+.reg-btn.full-btn{border-color:var(--color-border-danger);color:var(--color-text-danger)}
+.cancel-btn{padding:7px 11px;border:1.5px solid #b0b0b0;background:transparent;border-radius:8px;font-size:13px;cursor:pointer;color:var(--color-text-danger);transition:all .15s;white-space:nowrap}
+.cancel-btn:hover{background:var(--color-background-danger)}
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:100;align-items:center;justify-content:center}
+.overlay.open{display:flex}
+.modal{background:#FFFDF0;border-radius:12px;border:0.5px solid var(--color-border-tertiary);padding:1.375rem;width:340px;max-width:92vw}
+.modal h2{font-size:15px;font-weight:500;margin-bottom:3px}
+.modal .msub{font-size:12px;color:var(--color-text-secondary);margin-bottom:1.125rem}
+.fg{margin-bottom:.875rem}
+.fg label{font-size:12px;color:var(--color-text-secondary);margin-bottom:3px;display:block}
+.fi,.fs{width:100%;padding:7px 10px;border:1.5px solid #c8c8c8;border-radius:8px;font-size:14px;background:var(--color-background-primary);color:var(--color-text-primary)}
+.fi:focus,.fs:focus{outline:none;border-color:#4caf76;box-shadow:0 0 0 2px rgba(76,175,118,.2)}
+.frow{display:flex;gap:8px}.frow .fg{flex:1}
+.mactions{display:flex;gap:8px;margin-top:1.125rem}
+.btn-prim{flex:1;padding:8px;background:#1a3a2a;color:#fff;border:none;border-radius:8px;font-size:13px;cursor:pointer}
+.btn-prim:hover{background:#244d39}
+.btn-prim:disabled{opacity:.6;cursor:default}
+.btn-danger{flex:1;padding:8px;background:#A32D2D;color:#fff;border:none;border-radius:8px;font-size:13px;cursor:pointer}
+.btn-danger:hover{background:#791F1F}
+.btn-danger:disabled{opacity:.6;cursor:default}
+.btn-sec{padding:8px 14px;background:transparent;border:0.5px solid var(--color-border-secondary);border-radius:8px;font-size:13px;cursor:pointer;color:var(--color-text-secondary)}
+.btn-sec:hover{background:var(--color-background-secondary)}
+.stats-bar{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:1.5rem}
+.scard{background:var(--color-background-secondary);border-radius:8px;padding:.875rem;text-align:center}
+.snum{font-size:22px;font-weight:500;color:var(--color-text-primary)}
+.slbl{font-size:11px;color:var(--color-text-secondary);margin-top:2px}
+.add-form{background:var(--color-background-secondary);border-radius:12px;padding:1.125rem;margin-bottom:1.75rem}
+.add-form h2{font-size:13px;font-weight:500;margin-bottom:1rem;color:var(--color-text-primary)}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.g2{display:grid;grid-template-columns:2fr 1fr;gap:10px}
+.btn-add{padding:8px 18px;background:#1a3a2a;color:#fff;border:none;border-radius:8px;font-size:13px;cursor:pointer;margin-top:10px}
+.btn-add:hover{background:#244d39}
+.btn-add:disabled{opacity:.6;cursor:default}
+.tbl-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;padding:7px 11px;font-weight:500;color:var(--color-text-secondary);border-bottom:0.5px solid var(--color-border-tertiary);font-size:12px}
+td{padding:9px 11px;border-bottom:0.5px solid var(--color-border-tertiary);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+.action-btns{display:flex;gap:6px;flex-wrap:wrap}
+.btn-sm{padding:3px 9px;border-radius:6px;font-size:12px;cursor:pointer;border:0.5px solid}
+.btn-view{border-color:var(--color-border-secondary);color:var(--color-text-secondary);background:transparent}
+.btn-view:hover{background:var(--color-background-secondary)}
+.btn-del{border-color:var(--color-border-danger);color:var(--color-text-danger);background:transparent}
+.btn-del:hover{background:var(--color-background-danger)}
+.bcnt{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;background:var(--color-background-info);color:var(--color-text-info);font-size:11px;font-weight:500}
+.rlist{list-style:none;max-height:220px;overflow-y:auto;margin-bottom:.75rem}
+.ritem{display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:0.5px solid var(--color-border-tertiary);font-size:13px}
+.ritem:last-child{border-bottom:none}
+.rtype{font-size:11px;color:var(--color-text-secondary)}
+.btn-cancel-reg{padding:2px 7px;border:0.5px solid var(--color-border-danger);color:var(--color-text-danger);border-radius:5px;font-size:11px;cursor:pointer;background:transparent}
+.btn-cancel-reg:hover{background:var(--color-background-danger)}
+.lock-screen{display:flex;align-items:center;justify-content:center;min-height:400px}
+.lock-card{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:12px;padding:2rem;width:300px;text-align:center}
+.lock-card h2{font-size:15px;font-weight:500;margin-bottom:.5rem}
+.lock-card p{font-size:12px;color:var(--color-text-secondary);margin-bottom:1.25rem}
+.lock-err{font-size:12px;color:var(--color-text-danger);margin-top:.5rem;min-height:16px}
+.admin-bar{display:flex;justify-content:flex-end;margin-bottom:1rem}
+.btn-logout{padding:5px 12px;border:0.5px solid var(--color-border-secondary);border-radius:6px;font-size:12px;cursor:pointer;background:transparent;color:var(--color-text-secondary)}
+.btn-logout:hover{background:var(--color-background-secondary)}
+.empty{text-align:center;padding:2rem;color:var(--color-text-secondary);font-size:13px}
+.toast{position:fixed;bottom:1.5rem;right:1.5rem;background:#1a3a2a;color:#fff;padding:.6rem 1rem;border-radius:8px;font-size:13px;z-index:999;opacity:0;transform:translateY(8px);transition:all .2s;pointer-events:none}
+.toast.show{opacity:1;transform:translateY(0)}
+.hint{font-size:11px;color:var(--color-text-secondary);margin-top:6px;line-height:1.5}
+.toggle-wrap{display:flex;align-items:center;gap:8px}
+.toggle{position:relative;width:36px;height:20px;flex-shrink:0}
+.toggle input{opacity:0;width:0;height:0}
+.slider{position:absolute;inset:0;background:#ccc;border-radius:20px;cursor:pointer;transition:.2s}
+.slider:before{content:'';position:absolute;width:14px;height:14px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.2s}
+.toggle input:checked+.slider{background:#4caf76}
+.toggle input:checked+.slider:before{transform:translateX(16px)}
+.toggle-label{font-size:12px;color:var(--color-text-secondary)}
+.hidden-row td{opacity:.45}
+
+/* ── Firebase 狀態提示 ── */
+.db-banner{display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:8px;font-size:12px;margin-bottom:1rem}
+.db-banner.setup{background:#FEF8EE;border:1px solid #F0CEAA;color:#854F0B}
+.db-banner.ok{background:#F2F9EA;border:1px solid #B6D98A;color:#3B6D11}
+.db-banner.err{background:#FEF1F1;border:1px solid #F0AAAA;color:#A32D2D}
+.db-banner.loading{background:#F5F4FF;border:1px solid #C5C0F0;color:#534AB7}
+.db-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.db-dot.ok{background:#4caf76}
+.db-dot.err{background:#E24B4A}
+.db-dot.loading{background:#7B71D4;animation:pulse 1s infinite}
+.db-dot.setup{background:#F0A050}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* ── 設定頁面 ── */
+.setup-card{background:#FFFDF0;border:1.5px solid #F0CEAA;border-radius:12px;padding:1.5rem;max-width:560px}
+.setup-card h2{font-size:14px;font-weight:600;margin-bottom:.5rem;color:#1a1a1a}
+.setup-card p{font-size:12px;color:#666;margin-bottom:1rem;line-height:1.6}
+.setup-step{display:flex;gap:10px;margin-bottom:.875rem;font-size:12px;line-height:1.6}
+.step-num{flex-shrink:0;width:20px;height:20px;border-radius:50%;background:#1a3a2a;color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600}
+.setup-card code{background:rgba(0,0,0,0.07);padding:1px 5px;border-radius:4px;font-size:11px;font-family:monospace}
+.setup-card a{color:#185FA5}
+.fi-mono{font-family:monospace;font-size:12px}
+
+/* ── 即時同步指示器 ── */
+.sync-badge{display:inline-flex;align-items:center;gap:4px;font-size:10px;color:#3B6D11;background:#EAF3DE;padding:2px 7px;border-radius:10px;border:0.5px solid #B6D98A;margin-left:8px;vertical-align:middle}
+.sync-dot{width:5px;height:5px;border-radius:50%;background:#4caf76;animation:pulse 2s infinite}
+
+/* ── 手機響應式 ── */
+@media(max-width:600px){
+  .header{padding:.75rem .875rem}
+  .header h1{font-size:14px}
+  .nav-tab{padding:6px 11px;font-size:12px}
+  .view{padding:1rem .875rem}
+  .activity-grid{grid-template-columns:1fr}
+  .g3{grid-template-columns:1fr}
+  .g2{grid-template-columns:1fr}
+  .stats-bar{grid-template-columns:repeat(3,1fr);gap:8px}
+  .scard{padding:.625rem .5rem}
+  .snum{font-size:18px}
+  .slbl{font-size:10px}
+  .add-form > div:last-child{flex-direction:column;align-items:stretch}
+  .btn-add{width:100%;text-align:center}
+  table thead tr th:nth-child(2),
+  table tbody tr td:nth-child(2){display:none}
+  .modal{width:92vw !important;padding:1.125rem}
+  .frow{flex-direction:column;gap:0}
+  #list-modal .modal > div:last-child{flex-wrap:wrap}
+  #list-modal .modal > div:last-child button{flex:1 1 calc(50% - 4px)}
+  .action-btns{gap:4px}
+  .toggle-label{font-size:10px}
+  .toast{right:.75rem;left:.75rem;text-align:center}
+}
+@media(max-width:400px){
+  .nav-tab{padding:5px 8px;font-size:11px}
+  .card-btns{flex-direction:column}
+  .reg-btn,.cancel-btn{width:100%;text-align:center}
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <div class="header">
+    <div class="header-left">
+      <div class="logo">🏃</div>
+      <div>
+        <h1>台中馬拉松社
+          <span class="sync-badge" id="sync-badge" style="display:none">
+            <span class="sync-dot"></span>即時同步
+          </span>
+        </h1>
+        <p>活動報名系統</p>
+      </div>
+    </div>
+    <div class="nav-tabs">
+      <button class="nav-tab active" onclick="switchView('front')">活動報名</button>
+      <button class="nav-tab" onclick="switchView('admin')">後台管理</button>
+    </div>
+  </div>
+  <div id="view-front" class="view active"></div>
+  <div id="view-admin" class="view"></div>
+</div>
+
+<!-- 報名 Modal -->
+<div class="overlay" id="reg-modal">
+  <div class="modal">
+    <h2 id="rm-name"></h2><p class="msub" id="rm-date"></p>
+    <div class="fg"><label>姓名</label><input class="fi" id="rg-name" placeholder="請輸入姓名"/></div>
+    <div class="frow">
+      <div class="fg"><label>身份</label><select class="fs" id="rg-type"><option>社友</option><option>寶眷</option><option>訪客</option></select></div>
+      <div class="fg"><label>備註（選填）</label><input class="fi" id="rg-note" placeholder=""/></div>
+    </div>
+    <div class="mactions">
+      <button class="btn-sec" onclick="closeModal('reg-modal')">取消</button>
+      <button class="btn-prim" id="btn-submit-reg" onclick="submitReg()">確認報名</button>
+    </div>
+  </div>
+</div>
+
+<!-- 取消報名 Modal -->
+<div class="overlay" id="cancel-modal">
+  <div class="modal">
+    <h2 id="cm-name"></h2><p class="msub" id="cm-date"></p>
+    <div class="fg">
+      <label>請輸入您的姓名以取消報名</label>
+      <input class="fi" id="cm-input" placeholder="姓名"/>
+      <div class="hint">請確認姓名與報名時相同</div>
+    </div>
+    <div class="mactions">
+      <button class="btn-sec" onclick="closeModal('cancel-modal')">返回</button>
+      <button class="btn-danger" id="btn-submit-cancel" onclick="submitCancel()">確認取消報名</button>
+    </div>
+  </div>
+</div>
+
+<!-- 名單 Modal -->
+<div class="overlay" id="list-modal">
+  <div class="modal" style="width:390px">
+    <h2 id="lm-title">報名名單</h2><p class="msub" id="lm-sub"></p>
+    <ul class="rlist" id="rlist-ul"></ul>
+    <div style="display:flex;gap:8px">
+      <button class="btn-sec" style="flex:1" onclick="closeModal('list-modal')">關閉</button>
+      <button class="btn-prim" onclick="exportCSV()">匯出 CSV</button>
+      <button class="btn-prim" onclick="exportPDF()" style="background:#185FA5">匯出 PDF</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- Firebase SDK -->
+<script type="module">
+// ════════════════════════════════════════════════════════
+//  🔥 請將下方 FIREBASE_CONFIG 換成您自己的 Firebase 設定
+//  取得方式：Firebase Console → 專案設定 → 您的應用程式 → SDK 設定
+// ════════════════════════════════════════════════════════
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyCKauPoA5GkuxWM-RCh3rUIvx4FEn08uw4",
+  authDomain: "tc42195signup.firebaseapp.com",
+  databaseURL: "https://tc42195signup-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "tc42195signup",
+  storageBucket: "tc42195signup.firebasestorage.app",
+  messagingSenderId: "696833041018",
+  appId: "1:696833041018:web:a4d3a6d9f94c4da8d751c3"
+};
+// ════════════════════════════════════════════════════════
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
+import { getDatabase, ref, onValue, set, get, update, remove }
+  from "https://www.gstatic.com/firebasejs/12.13.0/firebase-database.js";
+
+// ── 常數 ──
+const ADMIN_PASSWORD = '42195@tc';
+const TAGS = {
+  meeting:{label:'例會',cls:'tag-meeting'},
+  run:{label:'跑步',cls:'tag-run'},
+  social:{label:'聯誼',cls:'tag-social'},
+  trip:{label:'旅遊',cls:'tag-trip'},
+  race:{label:'賽事',cls:'tag-race'},
+  other:{label:'其它',cls:'tag-other'}
+};
+const DEFAULT_DATA = [
+  {id:1,name:'週六晨跑訓練',date:'2026-05-09',type:'run',desc:'大坑步道，約12公里',max:30,visible:true,registrants:[{name:'張志明',type:'社友',note:''},{name:'林美玲',type:'寶眷',note:''},{name:'陳大偉',type:'社友',note:''}]},
+  {id:2,name:'五月份例會',date:'2026-05-11',type:'meeting',desc:'社務報告及活動討論',max:null,visible:true,registrants:[{name:'王小華',type:'社友',note:''},{name:'許秀蘭',type:'寶眷',note:''}]},
+  {id:3,name:'台中馬拉松賽事',date:'2026-05-16',type:'race',desc:'市民廣場出發，全馬／半馬',max:40,visible:false,registrants:[]},
+  {id:4,name:'溪頭一日遊',date:'2026-05-24',type:'trip',desc:'溪頭自然教育園區',max:25,visible:true,registrants:[{name:'劉建宏',type:'社友',note:''},{name:'蔡惠雯',type:'寶眷',note:''},{name:'吳明德',type:'社友',note:''},{name:'趙淑芬',type:'寶眷',note:''}]},
+];
+
+// ── 狀態 ──
+let adminUnlocked = false;
+let regTargetId = null, cancelTargetId = null, listTargetId = null;
+let db = null;
+let activitiesCache = null; // 本地快取（即時監聽更新）
+let isFirebaseReady = false;
+let currentView = 'front';
+
+// ── 檢查 Firebase 設定是否已填入 ──
+function isConfigured() {
+  return FIREBASE_CONFIG.apiKey && !FIREBASE_CONFIG.apiKey.includes('請填入');
+}
+
+// ── 初始化 Firebase ──
+function initFirebase() {
+  if (!isConfigured()) {
+    showDbStatus('setup');
+    renderFront();
+    return;
+  }
+  try {
+    const app = initializeApp(FIREBASE_CONFIG);
+    db = getDatabase(app);
+    showDbStatus('loading');
+
+    // 即時監聽資料變化
+    const activitiesRef = ref(db, 'activities');
+    onValue(activitiesRef, (snapshot) => {
+      if (snapshot.exists()) {
+        activitiesCache = snapshot.val();
+      } else {
+        // 第一次使用，寫入預設資料
+        set(activitiesRef, DEFAULT_DATA);
+        activitiesCache = JSON.parse(JSON.stringify(DEFAULT_DATA));
+      }
+      isFirebaseReady = true;
+      showDbStatus('ok');
+      // 有資料更新時，重新 render 目前頁面
+      if (currentView === 'front') renderFront();
+      else if (currentView === 'admin' && adminUnlocked) renderAdminTable();
+    }, (error) => {
+      console.error('Firebase 連線錯誤:', error);
+      showDbStatus('err', error.message);
+      // 降級使用 localStorage
+      activitiesCache = loadLocalData();
+      isFirebaseReady = false;
+      renderFront();
+    });
+
+  } catch(e) {
+    console.error('Firebase 初始化失敗:', e);
+    showDbStatus('err', e.message);
+    activitiesCache = loadLocalData();
+    renderFront();
+  }
+}
+
+// ── 狀態列顯示 ──
+function showDbStatus(status, msg) {
+  const badge = document.getElementById('sync-badge');
+  // 前台不顯示 banner，只顯示 header badge
+  if (status === 'ok') {
+    badge.style.display = 'inline-flex';
+  }
+}
+
+// ── LocalStorage 降級方案 ──
+function loadLocalData() {
+  try {
+    const r = localStorage.getItem('tcm_activities_v5');
+    return r ? JSON.parse(r) : JSON.parse(JSON.stringify(DEFAULT_DATA));
+  } catch(e) { return JSON.parse(JSON.stringify(DEFAULT_DATA)); }
+}
+function saveLocalData(a) {
+  try { localStorage.setItem('tcm_activities_v5', JSON.stringify(a)); } catch(e) {}
+}
+
+// ── 資料讀取：確保永遠回傳純陣列 ──
+// Firebase 有時把陣列存成物件 {0:{...},1:{...}}，需要還原成陣列
+function toArray(raw) {
+  if (!raw) return [];
+  if (Array.isArray(raw)) return raw.filter(Boolean);
+  return Object.values(raw).filter(Boolean);
+}
+function getActivities() {
+  return toArray(activitiesCache !== null ? activitiesCache : loadLocalData());
+}
+
+// ── 資料寫入：確保永遠以純陣列儲存 ──
+async function saveActivities(acts) {
+  const arr = toArray(acts); // 強制轉純陣列
+  activitiesCache = arr;
+  if (isFirebaseReady && db) {
+    try {
+      await set(ref(db, 'activities'), arr);
+    } catch(e) {
+      console.error('Firebase 寫入失敗:', e);
+      saveLocalData(arr);
+      showToast('⚠️ 雲端同步失敗，已儲存本機');
+    }
+  } else {
+    saveLocalData(arr);
+  }
+}
+
+// ── 工具函式 ──
+function nextId(a) { return a.length ? Math.max(...a.map(x=>x.id))+1 : 1; }
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2500);
+}
+function formatDate(d) {
+  const dt = new Date(d+'T00:00:00');
+  return `${dt.getMonth()+1}月${dt.getDate()}日（${['日','一','二','三','四','五','六'][dt.getDay()]}）`;
+}
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+function setLoading(btnId, loading) {
+  const btn = document.getElementById(btnId);
+  if(btn) btn.disabled = loading;
+}
+
+// ── 切換頁面 ──
+window.switchView = function(v) {
+  currentView = v;
+  document.querySelectorAll('.view').forEach(e=>e.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(e=>e.classList.remove('active'));
+  document.getElementById('view-'+v).classList.add('active');
+  document.querySelectorAll('.nav-tab')[v==='front'?0:1].classList.add('active');
+  v==='front' ? renderFront() : renderAdmin();
+};
+window.closeModal = closeModal;
+
+// ════════════════════════════════════════════════════════
+//  前台渲染
+// ════════════════════════════════════════════════════════
+function renderFront() {
+  const el = document.getElementById('view-front');
+  if (!activitiesCache && !isFirebaseReady) {
+    el.innerHTML = renderDbBanner() + '<div class="empty">⏳ 載入中…</div>';
+    return;
+  }
+  const acts = getActivities().filter(a=>a.visible!==false).sort((a,b)=>a.date.localeCompare(b.date));
+  if (!acts.length) { el.innerHTML = '<div class="empty">目前尚無開放報名活動</div>'; return; }
+  el.innerHTML = `<p class="sec-title">目前開放報名活動</p><div class="activity-grid">${acts.map(a=>{
+    const tag=TAGS[a.type]||TAGS.other,cnt=(a.registrants||[]).length,full=a.max&&cnt>=a.max,pct=a.max?Math.min(100,Math.round(cnt/a.max*100)):0;
+    const names=(a.registrants||[]).map(r=>`<span class="nbadge">${r.name}</span>`).join('');
+    return`<div class="card ctype-${a.type}">
+      <div class="card-head">
+        <span class="atag ${tag.cls}">${tag.label}</span>
+        <div class="card-title">${a.name}</div>
+        <div class="card-sub">${formatDate(a.date)}${a.desc?' · '+a.desc:''}</div>
+        ${(a.location||a.mapUrl)?`<div class="card-location">${a.location?`<span>📍 ${a.location}</span>`:''}${a.mapUrl?`<a href="${a.mapUrl}" target="_blank" rel="noopener">Google 地圖</a>`:''}</div>`:''}
+      </div>
+      <div class="card-body">
+        <div class="prog-row">
+          <span class="prog-label">${a.max?`名額 ${cnt} / ${a.max}`:`已報名 ${cnt} 人`}</span>
+          ${full?'<span style="font-size:11px;color:var(--color-text-danger)">已額滿</span>':''}
+        </div>
+        ${a.max?`<div class="prog-bar"><div class="prog-fill${full?' full':''}" style="width:${pct}%"></div></div>`:''}
+        <div class="names-row">${names}</div>
+        <div class="card-btns">
+          <button class="reg-btn${full?' full-btn':''}" ${full?'disabled':''} onclick="${full?'':'openRegModal('+a.id+')'}">${full?'報名已額滿':'+ 我要報名'}</button>
+          <button class="cancel-btn" onclick="openCancelModal(${a.id})">取消報名</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('')}</div>`;
+}
+
+function renderDbBanner(type='setup', msg='') {
+  if (type==='setup') return `<div class="db-banner setup"><span class="db-dot setup"></span><span>尚未設定 Firebase，請在後台管理完成設定後，所有使用者才能共享資料。目前使用本機儲存。</span></div>`;
+  if (type==='err')   return `<div class="db-banner err"><span class="db-dot err"></span><span>Firebase 連線失敗（${msg}），目前使用本機儲存。</span></div>`;
+  return '';
+}
+
+// ════════════════════════════════════════════════════════
+//  報名 / 取消
+// ════════════════════════════════════════════════════════
+window.openRegModal = function(id) {
+  const a = getActivities().find(x=>x.id===id);
+  regTargetId = id;
+  document.getElementById('rm-name').textContent = a.name;
+  document.getElementById('rm-date').textContent = formatDate(a.date);
+  document.getElementById('rg-name').value = '';
+  document.getElementById('rg-note').value = '';
+  document.getElementById('reg-modal').classList.add('open');
+};
+
+window.submitReg = async function() {
+  const name = document.getElementById('rg-name').value.trim();
+  if (!name) { document.getElementById('rg-name').focus(); return; }
+  const type = document.getElementById('rg-type').value;
+  const note = document.getElementById('rg-note').value.trim();
+  setLoading('btn-submit-reg', true);
+  let acts = getActivities();
+  const a = acts.find(x=>x.id===regTargetId);
+  if (a.registrants.find(r=>r.name===name)) {
+    alert('此姓名已報名本活動');
+    setLoading('btn-submit-reg', false);
+    return;
+  }
+  (a.registrants||(a.registrants=[])).push({name, type, note});
+  await saveActivities(acts);
+  closeModal('reg-modal');
+  renderFront();
+  showToast('✓ 報名成功：'+name);
+  setLoading('btn-submit-reg', false);
+};
+
+window.openCancelModal = function(id) {
+  const a = getActivities().find(x=>x.id===id);
+  cancelTargetId = id;
+  document.getElementById('cm-name').textContent = a.name;
+  document.getElementById('cm-date').textContent = formatDate(a.date);
+  document.getElementById('cm-input').value = '';
+  document.getElementById('cancel-modal').classList.add('open');
+};
+
+window.submitCancel = async function() {
+  const name = document.getElementById('cm-input').value.trim();
+  if (!name) { document.getElementById('cm-input').focus(); return; }
+  let acts = getActivities();
+  const a = acts.find(x=>x.id===cancelTargetId);
+  if (!a.registrants.find(r=>r.name===name)) {
+    const inp = document.getElementById('cm-input');
+    inp.style.borderColor='#E24B4A'; inp.placeholder='找不到此姓名，請確認';
+    setTimeout(()=>{inp.style.borderColor='';inp.placeholder='姓名'},2000);
+    return;
+  }
+  setLoading('btn-submit-cancel', true);
+  a.registrants = (a.registrants||[]).filter(r=>r.name!==name);
+  await saveActivities(acts);
+  closeModal('cancel-modal');
+  renderFront();
+  showToast('已取消 '+name+' 的報名');
+  setLoading('btn-submit-cancel', false);
+};
+
+// ════════════════════════════════════════════════════════
+//  後台
+// ════════════════════════════════════════════════════════
+function renderAdmin() {
+  const el = document.getElementById('view-admin');
+  if (!adminUnlocked) {
+    el.innerHTML = `<div class="lock-screen"><div class="lock-card">
+      <div class="lock-icon">🔒</div><h2>後台管理</h2><p>請輸入管理員密碼</p>
+      <input class="fi" id="pw-input" type="password" placeholder="密碼" style="text-align:center"/>
+      <div class="lock-err" id="pw-err"></div>
+      <div style="margin-top:1rem"><button class="btn-prim" id="btn-do-login" style="width:100%">登入</button></div>
+    </div></div>`;
+    document.getElementById('btn-do-login').addEventListener('click', doLogin);
+    document.getElementById('pw-input').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
+    return;
+  }
+  renderAdminContent();
+}
+
+function doLogin() {
+  const inp = document.getElementById('pw-input');
+  if (!inp) return;
+  if (inp.value === ADMIN_PASSWORD) {
+    adminUnlocked = true;
+    renderAdminContent();
+  } else {
+    document.getElementById('pw-err').textContent = '密碼錯誤，請再試一次';
+  }
+}
+
+function renderAdminContent() {
+  const el = document.getElementById('view-admin');
+  const acts = getActivities();
+  const totalReg = acts.reduce((s,a)=>s+(a.registrants?a.registrants.length:0),0);
+  const visibleAct = acts.filter(a=>a.visible!==false).length;
+
+  // Firebase 狀態 banner
+  let banner = '';
+  if (!isConfigured()) {
+    banner = `<div class="db-banner setup" style="margin-bottom:1rem">
+      <span class="db-dot setup"></span>
+      <div>
+        <strong>尚未設定 Firebase</strong> — 目前所有資料僅儲存在此瀏覽器，其他使用者看不到。
+        <a href="#" onclick="showFirebaseSetup();return false" style="color:#854F0B;font-weight:600">查看設定步驟 →</a>
+      </div>
+    </div>`;
+  } else if (isFirebaseReady) {
+    banner = `<div class="db-banner ok" style="margin-bottom:1rem">
+      <span class="db-dot ok"></span>
+      <span>🟢 Firebase 已連線，所有使用者即時共享資料</span>
+    </div>`;
+  } else {
+    banner = `<div class="db-banner err" style="margin-bottom:1rem">
+      <span class="db-dot err"></span>
+      <span>⚠️ Firebase 連線失敗，目前使用本機儲存</span>
+    </div>`;
+  }
+
+  el.innerHTML = `
+    <div class="admin-bar"><button class="btn-logout" onclick="logout()">登出</button></div>
+    ${banner}
+    <div class="stats-bar">
+      <div class="scard"><div class="snum">${acts.length}</div><div class="slbl">活動總數</div></div>
+      <div class="scard"><div class="snum">${visibleAct}</div><div class="slbl">前台顯示中</div></div>
+      <div class="scard"><div class="snum">${totalReg}</div><div class="slbl">總報名人次</div></div>
+    </div>
+    <div class="add-form"><h2>新增活動</h2>
+      <div class="g3">
+        <div class="fg"><label>活動名稱</label><input class="fi" id="a-name" placeholder="例：週末長跑"/></div>
+        <div class="fg"><label>活動日期</label><input class="fi" type="date" id="a-date"/></div>
+        <div class="fg"><label>活動類型</label><select class="fs" id="a-type">
+          <option value="meeting">例會</option>
+          <option value="run">跑步</option>
+          <option value="social">聯誼</option>
+          <option value="trip">旅遊</option>
+          <option value="race">賽事</option>
+          <option value="other">其它</option>
+        </select></div>
+      </div>
+      <div class="g2" style="margin-top:8px">
+        <div class="fg"><label>活動說明</label><input class="fi" id="a-desc" placeholder="活動內容…"/></div>
+        <div class="fg"><label>人數上限</label><input class="fi" type="number" id="a-max" placeholder="留空=無限" min="1"/></div>
+      </div>
+      <div class="g2" style="margin-top:8px">
+        <div class="fg"><label>地點</label><input class="fi" id="a-location" placeholder="例：大坑停車場入口"/></div>
+        <div class="fg"><label>Google 地圖連結（選填）</label><input class="fi" id="a-mapurl" placeholder="https://maps.app.goo.gl/…"/></div>
+      </div>
+      <div style="margin-top:10px;display:flex;align-items:center;justify-content:space-between">
+        <div class="toggle-wrap">
+          <label class="toggle"><input type="checkbox" id="a-visible" checked/><span class="slider"></span></label>
+          <span class="toggle-label">新增後立即在前台顯示</span>
+        </div>
+        <button class="btn-add" id="btn-add-act" onclick="addActivity()">+ 新增活動</button>
+      </div>
+    </div>
+    <div id="admin-table-area"></div>`;
+
+  renderAdminTable();
+}
+
+function renderAdminTable() {
+  const area = document.getElementById('admin-table-area');
+  if (!area) return;
+  const acts = getActivities();
+  area.innerHTML = `<div class="tbl-wrap"><table>
+    <thead><tr><th>活動名稱</th><th>日期</th><th>類型</th><th>報名</th><th style="min-width:64px">前台顯示</th><th>操作</th></tr></thead>
+    <tbody>${acts.length ? acts.map(a=>{
+      const tag=TAGS[a.type]||TAGS.other,vis=a.visible!==false;
+      return`<tr class="${vis?'':'hidden-row'}">
+        <td><span style="font-weight:500">${a.name}</span>${a.desc?`<br><span style="font-size:11px;color:var(--color-text-secondary)">${a.desc}</span>`:''}${a.location?`<br><span style="font-size:11px;color:var(--color-text-secondary)">📍 ${a.location}</span>`:''}${a.mapUrl?`<br><a href="${a.mapUrl}" target="_blank" rel="noopener" style="font-size:11px;color:#185FA5">地圖連結</a>`:''}</td>
+        <td style="white-space:nowrap">${formatDate(a.date)}</td>
+        <td><span class="atag ${tag.cls}">${tag.label}</span></td>
+        <td><span class="bcnt">${(a.registrants||[]).length}</span>${a.max?' / '+a.max:''}</td>
+        <td>
+          <div class="toggle-wrap">
+            <label class="toggle"><input type="checkbox" ${vis?'checked':''} onchange="toggleVisible(${a.id},this.checked)"/><span class="slider"></span></label>
+            <span class="toggle-label" style="font-size:11px">${vis?'顯示':'隱藏'}</span>
+          </div>
+        </td>
+        <td><div class="action-btns">
+          <button class="btn-sm btn-view" onclick="showList(${a.id})">名單</button>
+          <button class="btn-sm btn-del" onclick="delActivity(${a.id})">刪除</button>
+        </div></td>
+      </tr>`;
+    }).join('') : '<tr><td colspan="6" class="empty">尚無活動</td></tr>'}</tbody>
+  </table></div>`;
+}
+
+window.toggleVisible = async function(id, val) {
+  let acts = getActivities();
+  const a = acts.find(x=>x.id===id);
+  a.visible = val;
+  await saveActivities(acts);
+  showToast(val?'✓ 已在前台顯示':'已從前台隱藏');
+  renderAdminTable();
+};
+
+window.checkPw = doLogin;
+window.logout = function() { adminUnlocked=false; renderAdmin(); };
+
+window.addActivity = async function() {
+  const name = document.getElementById('a-name').value.trim();
+  const date = document.getElementById('a-date').value;
+  if (!name||!date) { alert('請填寫活動名稱與日期'); return; }
+  const type=document.getElementById('a-type').value,
+        desc=document.getElementById('a-desc').value.trim(),
+        maxVal=document.getElementById('a-max').value,
+        visible=document.getElementById('a-visible').checked,
+        location=document.getElementById('a-location').value.trim(),
+        mapUrl=document.getElementById('a-mapurl').value.trim();
+  setLoading('btn-add-act', true);
+  let acts = getActivities();
+  acts.push({id:nextId(acts),name,date,type,desc,location,mapUrl,max:maxVal?parseInt(maxVal):null,visible,registrants:[]});
+  await saveActivities(acts);
+  showToast('✓ 活動已新增：'+name);
+  renderAdminContent();
+  setLoading('btn-add-act', false);
+};
+
+window.delActivity = async function(id) {
+  if (!confirm('確定要刪除此活動及所有報名資料？')) return;
+  let acts = getActivities();
+  acts = acts.filter(a=>a.id!==id);
+  await saveActivities(acts);
+  renderAdminContent();
+  showToast('活動已刪除');
+};
+
+window.showList = function(id) {
+  listTargetId = id;
+  const a = getActivities().find(x=>x.id===id);
+  document.getElementById('lm-title').textContent = a.name+' 報名名單';
+  document.getElementById('lm-sub').textContent = `共 ${(a.registrants||[]).length} 人${a.max?' (上限'+a.max+'人)':''}`;
+  const ul = document.getElementById('rlist-ul');
+  ul.innerHTML = (a.registrants||[]).length
+    ? (a.registrants||[]).map((r,i)=>`<li class="ritem"><span>${i+1}. ${r.name}${r.note?' · '+r.note:''}</span><span style="display:flex;align-items:center;gap:6px"><span class="rtype">${r.type}</span><button class="btn-cancel-reg" onclick="adminCancelReg(${id},'${r.name.replace(/'/g,"\\'")}')">取消報名</button></span></li>`).join('')
+    : '<li style="text-align:center;padding:1.5rem;color:var(--color-text-secondary);font-size:13px">尚無人報名</li>';
+  document.getElementById('list-modal').classList.add('open');
+};
+
+window.adminCancelReg = async function(actId, name) {
+  if (!confirm(`確定取消 ${name} 的報名？`)) return;
+  let acts = getActivities();
+  const a = acts.find(x=>x.id===actId);
+  a.registrants = (a.registrants||[]).filter(r=>r.name!==name);
+  await saveActivities(acts);
+  showToast('已取消 '+name+' 的報名');
+  showList(actId);
+  renderAdminTable();
+};
+
+window.exportCSV = function() {
+  const a = getActivities().find(x=>x.id===listTargetId);
+  const rows = [['序號','姓名','身份','備註'],...(a.registrants||[]).map((r,i)=>[i+1,r.name,r.type,r.note||''])];
+  const csv = '\uFEFF'+rows.map(r=>r.map(v=>`"${v}"`).join(',')).join('\n');
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8'}),url=URL.createObjectURL(blob),lnk=document.createElement('a');
+  lnk.href=url; lnk.download=a.name+'_報名名單.csv'; lnk.click(); URL.revokeObjectURL(url);
+  showToast('CSV 已下載');
+};
+
+window.exportPDF = function() {
+  const a = getActivities().find(x=>x.id===listTargetId), tag=TAGS[a.type]||TAGS.other;
+  const rows = (a.registrants||[]).map((r,i)=>`<tr><td>${i+1}</td><td>${r.name}</td><td>${r.type}</td><td>${r.note||'—'}</td></tr>`).join('');
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${a.name} 報名名單</title><style>body{font-family:'Noto Sans TC',sans-serif;padding:32px;color:#222}h1{font-size:20px;font-weight:600;margin-bottom:4px}.meta{font-size:13px;color:#666;margin-bottom:24px}table{width:100%;border-collapse:collapse;font-size:13px}th{background:#1a3a2a;color:#fff;padding:8px 12px;text-align:left;font-weight:500}td{padding:8px 12px;border-bottom:1px solid #e0e0e0}tr:nth-child(even) td{background:#f8f8f8}.footer{margin-top:20px;font-size:11px;color:#999}</style></head><body><h1>${a.name}</h1><div class="meta">活動日期：${formatDate(a.date)} ｜ 類型：${tag.label} ｜ 報名人數：${(a.registrants||[]).length}${a.max?' / '+a.max:''}人</div><table><thead><tr><th>序號</th><th>姓名</th><th>身份</th><th>備註</th></tr></thead><tbody>${rows||'<tr><td colspan="4" style="text-align:center;color:#999">尚無報名資料</td></tr>'}</tbody></table><div class="footer">列印時間：${new Date().toLocaleString('zh-TW')} ｜ 台中馬拉松社活動報名系統</div><script>window.onload=function(){window.print()}<\/script></body></html>`;
+  const w = window.open('','_blank');
+  if (w) { w.document.write(html); w.document.close(); }
+  else showToast('請允許彈出視窗以匯出 PDF');
+};
+
+// ── Firebase 設定說明頁 ──
+window.showFirebaseSetup = function() {
+  const el = document.getElementById('view-admin');
+  const contentArea = el.querySelector('.add-form') || el;
+  const setupHtml = `
+  <div class="setup-card" style="margin-bottom:1.5rem">
+    <h2>🔥 Firebase 設定步驟</h2>
+    <p>完成以下步驟後，所有使用者的報名資料將即時同步，並儲存在雲端資料庫。</p>
+    <div class="setup-step"><span class="step-num">1</span><div>前往 <a href="https://console.firebase.google.com/" target="_blank">Firebase Console</a> 並登入 Google 帳號</div></div>
+    <div class="setup-step"><span class="step-num">2</span><div>點擊「新增專案」，輸入名稱（例如：<code>taichung-marathon</code>），依步驟完成建立</div></div>
+    <div class="setup-step"><span class="step-num">3</span><div>在左側選單點擊「建構」→「Realtime Database」→「建立資料庫」，地區選擇亞洲，規則選「測試模式」</div></div>
+    <div class="setup-step"><span class="step-num">4</span><div>回到「專案設定」（齒輪圖示）→「一般」→ 向下找「您的應用程式」→ 點「&lt;/&gt;」新增網頁應用程式</div></div>
+    <div class="setup-step"><span class="step-num">5</span><div>複製出現的 <code>firebaseConfig</code> 物件中的所有值，填入本 HTML 檔案最上方的 <code>FIREBASE_CONFIG</code> 區段</div></div>
+    <div class="setup-step"><span class="step-num">6</span><div>儲存 HTML 檔案並重新上傳到 GitHub Pages — 完成！🎉</div></div>
+    <p style="margin-top:.75rem;color:#854F0B;font-size:12px">⚠️ 建議在 Firebase Console 的 Realtime Database → 規則 中，設定適當的讀寫規則，避免資料被陌生人刪除。</p>
+  </div>`;
+  // 插入在 stats-bar 後面
+  const statsBar = el.querySelector('.stats-bar');
+  if (statsBar) statsBar.insertAdjacentHTML('afterend', setupHtml);
+};
+
+// ── Modal 點擊背景關閉 ──
+['reg-modal','cancel-modal','list-modal'].forEach(id=>{
+  document.getElementById(id).addEventListener('click', e=>{
+    if(e.target===document.getElementById(id)) closeModal(id);
+  });
+});
+
+// ── 啟動 ──
+initFirebase();
+
+</script>
+</body>
+</html>
