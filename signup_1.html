@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>台中馬拉松社 活動報名系統</title>
+<style>
+:root{
+  --font-sans:-apple-system,BlinkMacSystemFont,"Noto Sans TC","PingFang TC",sans-serif;
+  --c-text:#1a1a1a;--c-sub:#666;--c-danger:#A32D2D;--c-info:#185FA5;
+  --c-bg:#fff;--c-bg2:#f5f5f5;--c-bg-danger:#fff0f0;--c-bg-info:#e6f1fb;
+  --c-border:#e0e0e0;--c-border2:#c8c8c8;--c-border-danger:#E24B4A;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-sans)}
+.app{min-height:600px}
+/* Header */
+.header{background:#1a3a2a;color:#fff;padding:.875rem 1rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.header-left{display:flex;align-items:center;gap:10px}
+.logo{width:34px;height:34px;background:#4caf76;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
+.header h1{font-size:15px;font-weight:500}
+.header p{font-size:11px;color:rgba(255,255,255,.6);margin-top:1px}
+.nav-tabs{display:flex;gap:4px}
+.nav-tab{padding:6px 13px;border-radius:6px;font-size:13px;cursor:pointer;border:none;background:transparent;color:rgba(255,255,255,.6);transition:all .15s}
+.nav-tab.active{background:rgba(255,255,255,.15);color:#fff}
+.nav-tab:hover:not(.active){color:#fff;background:rgba(255,255,255,.08)}
+/* Views */
+.view{display:none;padding:1.25rem 1rem}
+.view.active{display:block}
+/* Cards */
+.sec-title{font-size:12px;font-weight:500;color:var(--c-sub);margin-bottom:1rem}
+.activity-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(272px,1fr));gap:14px}
+.card{border:1.5px solid var(--c-border);border-radius:12px;overflow:hidden}
+.card-head{padding:.875rem 1.125rem .75rem;border-bottom:1px solid rgba(0,0,0,.07)}
+.card.ctype-meeting{background:#F5F4FF;border-color:#C5C0F0}.card.ctype-meeting .card-head{border-bottom-color:#C5C0F0}
+.card.ctype-run{background:#F2F9EA;border-color:#B6D98A}.card.ctype-run .card-head{border-bottom-color:#B6D98A}
+.card.ctype-social{background:#EEF6FD;border-color:#A8CFEE}.card.ctype-social .card-head{border-bottom-color:#A8CFEE}
+.card.ctype-trip{background:#FEF8EE;border-color:#F0CEAA}.card.ctype-trip .card-head{border-bottom-color:#F0CEAA}
+.card.ctype-race{background:#FEF1F1;border-color:#F0AAAA}.card.ctype-race .card-head{border-bottom-color:#F0AAAA}
+.card.ctype-other{background:#F5F4F0;border-color:#D0CEC6}.card.ctype-other .card-head{border-bottom-color:#D0CEC6}
+.atag{display:inline-block;font-size:11px;padding:2px 8px;border-radius:20px;margin-bottom:7px;font-weight:500}
+.tag-meeting{background:#EEEDFE;color:#534AB7}.tag-run{background:#EAF3DE;color:#3B6D11}
+.tag-social{background:#E6F1FB;color:#185FA5}.tag-trip{background:#FAEEDA;color:#854F0B}
+.tag-race{background:#FCEBEB;color:#A32D2D}.tag-other{background:#F1EFE8;color:#5F5E5A}
+.card-title{font-size:14px;font-weight:500;color:var(--c-text);margin-bottom:3px}
+.card-sub{font-size:12px;color:var(--c-sub)}
+.card-location{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--c-sub);margin-top:4px}
+.card-location a{font-size:11px;color:#185FA5;text-decoration:none;padding:1px 6px;border:.5px solid #A8CFEE;border-radius:10px;background:#E6F1FB;white-space:nowrap}
+.card-location a:hover{background:#CCE4F6}
+.card-body{padding:.75rem 1.125rem}
+.prog-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px}
+.prog-label{font-size:12px;color:var(--c-sub)}
+.prog-bar{height:4px;background:rgba(0,0,0,.08);border-radius:2px;margin-bottom:9px;overflow:hidden}
+.prog-fill{height:100%;border-radius:2px;background:#4caf76;transition:width .3s}
+.prog-fill.full{background:#E24B4A}
+.names-row{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:9px;min-height:20px}
+.nbadge{font-size:11px;padding:2px 7px;border-radius:12px;background:rgba(0,0,0,.07);color:var(--c-sub)}
+.card-btns{display:flex;gap:7px}
+.reg-btn{flex:1;padding:7px;border:1.5px solid #b0b0b0;background:transparent;border-radius:8px;font-size:13px;cursor:pointer;color:var(--c-text);transition:all .15s}
+.reg-btn:hover:not(:disabled){background:rgba(0,0,0,.05)}
+.reg-btn:disabled{opacity:.5;cursor:default}
+.reg-btn.full-btn{border-color:var(--c-border-danger);color:var(--c-danger)}
+.cancel-btn{padding:7px 11px;border:1.5px solid #b0b0b0;background:transparent;border-radius:8px;font-size:13px;cursor:pointer;color:var(--c-danger);transition:all .15s;white-space:nowrap}
+.cancel-btn:hover{background:var(--c-bg-danger)}
+/* Modals */
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:100;align-items:center;justify-content:center}
+.overlay.open{display:flex}
+.modal{background:#FFFDF0;border-radius:12px;border:.5px solid var(--c-border);padding:1.375rem;width:340px;max-width:92vw}
+.modal h2{font-size:15px;font-weight:500;margin-bottom:3px}
+.modal .msub{font-size:12px;color:var(--c-sub);margin-bottom:1.125rem}
+.fg{margin-bottom:.875rem}
+.fg label{font-size:12px;color:var(--c-sub);margin-bottom:3px;display:block}
+.fi,.fs{width:100%;padding:7px 10px;border:1.5px solid #c8c8c8;border-radius:8px;font-size:14px;background:var(--c-bg);color:var(--c-text)}
+.fi:focus,.fs:focus{outline:none;border-color:#4caf76;box-shadow:0 0 0 2px rgba(76,175,118,.2)}
+.frow{display:flex;gap:8px}.frow .fg{flex:1}
+.mactions{display:flex;gap:8px;margin-top:1.125rem}
+.btn-prim{flex:1;padding:8px;background:#1a3a2a;color:#fff;border:none;border-radius:8px;font-size:13px;cursor:pointer}
+.btn-prim:hover{background:#244d39}.btn-prim:disabled{opacity:.6;cursor:default}
+.btn-danger{flex:1;padding:8px;background:#A32D2D;color:#fff;border:none;border-radius:8px;font-size:13px;cursor:pointer}
+.btn-danger:hover{background:#791F1F}.btn-danger:disabled{opacity:.6;cursor:default}
+.btn-sec{padding:8px 14px;background:transparent;border:.5px solid var(--c-border2);border-radius:8px;font-size:13px;cursor:pointer;color:var(--c-sub)}
+.btn-sec:hover{background:var(--c-bg2)}
+/* Admin */
+.stats-bar{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:1.5rem}
+.scard{background:var(--c-bg2);border-radius:8px;padding:.875rem;text-align:center}
+.snum{font-size:22px;font-weight:500;color:var(--c-text)}.slbl{font-size:11px;color:var(--c-sub);margin-top:2px}
+.add-form{background:var(--c-bg2);border-radius:12px;padding:1.125rem;margin-bottom:1.75rem}
+.add-form h2{font-size:13px;font-weight:500;margin-bottom:1rem}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.g2{display:grid;grid-template-columns:2fr 1fr;gap:10px}
+.btn-add{padding:8px 18px;background:#1a3a2a;color:#fff;border:none;border-radius:8px;font-size:13px;cursor:pointer;margin-top:10px}
+.btn-add:hover{background:#244d39}.btn-add:disabled{opacity:.6;cursor:default}
+.tbl-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;padding:7px 11px;font-weight:500;color:var(--c-sub);border-bottom:.5px solid var(--c-border);font-size:12px}
+td{padding:9px 11px;border-bottom:.5px solid var(--c-border);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+.action-btns{display:flex;gap:6px;flex-wrap:wrap}
+.btn-sm{padding:3px 9px;border-radius:6px;font-size:12px;cursor:pointer;border:.5px solid}
+.btn-view{border-color:var(--c-border2);color:var(--c-sub);background:transparent}.btn-view:hover{background:var(--c-bg2)}
+.btn-del{border-color:var(--c-border-danger);color:var(--c-danger);background:transparent}.btn-del:hover{background:var(--c-bg-danger)}
+.bcnt{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;background:var(--c-bg-info);color:var(--c-info);font-size:11px;font-weight:500}
+.rlist{list-style:none;max-height:220px;overflow-y:auto;margin-bottom:.75rem}
+.ritem{display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:.5px solid var(--c-border);font-size:13px}
+.ritem:last-child{border-bottom:none}
+.rtype{font-size:11px;color:var(--c-sub)}
+.btn-cancel-reg{padding:2px 7px;border:.5px solid var(--c-border-danger);color:var(--c-danger);border-radius:5px;font-size:11px;cursor:pointer;background:transparent}
+.btn-cancel-reg:hover{background:var(--c-bg-danger)}
+.lock-screen{display:flex;align-items:center;justify-content:center;min-height:400px}
+.lock-card{background:var(--c-bg);border:.5px solid var(--c-border);border-radius:12px;padding:2rem;width:300px;text-align:center}
+.lock-card h2{font-size:15px;font-weight:500;margin-bottom:.5rem}
+.lock-card p{font-size:12px;color:var(--c-sub);margin-bottom:1.25rem}
+.lock-err{font-size:12px;color:var(--c-danger);margin-top:.5rem;min-height:16px}
+.admin-bar{display:flex;justify-content:flex-end;margin-bottom:1rem}
+.btn-logout{padding:5px 12px;border:.5px solid var(--c-border2);border-radius:6px;font-size:12px;cursor:pointer;background:transparent;color:var(--c-sub)}
+.btn-logout:hover{background:var(--c-bg2)}
+.empty{text-align:center;padding:2rem;color:var(--c-sub);font-size:13px}
+.toast{position:fixed;bottom:1.5rem;right:1.5rem;background:#1a3a2a;color:#fff;padding:.6rem 1rem;border-radius:8px;font-size:13px;z-index:999;opacity:0;transform:translateY(8px);transition:all .2s;pointer-events:none}
+.toast.show{opacity:1;transform:translateY(0)}
+.hint{font-size:11px;color:var(--c-sub);margin-top:6px;line-height:1.5}
+.toggle-wrap{display:flex;align-items:center;gap:8px}
+.toggle{position:relative;width:36px;height:20px;flex-shrink:0}
+.toggle input{opacity:0;width:0;height:0}
+.slider{position:absolute;inset:0;background:#ccc;border-radius:20px;cursor:pointer;transition:.2s}
+.slider:before{content:'';position:absolute;width:14px;height:14px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.2s}
+.toggle input:checked+.slider{background:#4caf76}
+.toggle input:checked+.slider:before{transform:translateX(16px)}
+.toggle-label{font-size:12px;color:var(--c-sub)}
+.hidden-row td{opacity:.45}
+.db-banner{display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:8px;font-size:12px;margin-bottom:1rem}
+.db-ok{background:#F2F9EA;border:1px solid #B6D98A;color:#3B6D11}
+.db-err{background:#FEF1F1;border:1px solid #F0AAAA;color:#A32D2D}
+.sync-badge{display:inline-flex;align-items:center;gap:4px;font-size:10px;color:#3B6D11;background:#EAF3DE;padding:2px 7px;border-radius:10px;border:.5px solid #B6D98A;margin-left:8px;vertical-align:middle}
+.sync-dot{width:5px;height:5px;border-radius:50%;background:#4caf76;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+@media(max-width:600px){
+  .header{padding:.75rem .875rem}.header h1{font-size:14px}
+  .nav-tab{padding:6px 11px;font-size:12px}
+  .view{padding:1rem .875rem}
+  .activity-grid{grid-template-columns:1fr}
+  .g3,.g2{grid-template-columns:1fr}
+  .stats-bar{gap:8px}.scard{padding:.625rem .5rem}.snum{font-size:18px}.slbl{font-size:10px}
+  .add-form>div:last-child{flex-direction:column;align-items:stretch}
+  .btn-add{width:100%;text-align:center}
+  table thead tr th:nth-child(2),table tbody tr td:nth-child(2){display:none}
+  .modal{width:92vw!important;padding:1.125rem}
+  .frow{flex-direction:column;gap:0}
+  #list-modal .modal>div:last-child{flex-wrap:wrap}
+  #list-modal .modal>div:last-child button{flex:1 1 calc(50% - 4px)}
+  .toast{right:.75rem;left:.75rem;text-align:center}
+}
+@media(max-width:400px){
+  .nav-tab{padding:5px 8px;font-size:11px}
+  .card-btns{flex-direction:column}
+  .reg-btn,.cancel-btn{width:100%;text-align:center}
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <div class="header">
+    <div class="header-left">
+      <div class="logo">🏃</div>
+      <div>
+        <h1>台中馬拉松社<span class="sync-badge" id="sync-badge" style="display:none"><span class="sync-dot"></span>即時同步</span></h1>
+        <p>活動報名系統</p>
+      </div>
+    </div>
+    <div class="nav-tabs">
+      <button class="nav-tab active" onclick="switchView('front')">活動報名</button>
+      <button class="nav-tab" onclick="switchView('admin')">後台管理</button>
+    </div>
+  </div>
+  <div id="view-front" class="view active"></div>
+  <div id="view-admin" class="view"></div>
+</div>
+
+<!-- 報名 Modal -->
+<div class="overlay" id="reg-modal">
+  <div class="modal">
+    <h2 id="rm-name"></h2><p class="msub" id="rm-date"></p>
+    <div class="fg"><label>姓名</label><input class="fi" id="rg-name" placeholder="請輸入姓名"/></div>
+    <div class="frow">
+      <div class="fg"><label>身份</label><select class="fs" id="rg-type"><option>社友</option><option>寶眷</option><option>訪客</option></select></div>
+      <div class="fg"><label>備註（選填）</label><input class="fi" id="rg-note" placeholder=""/></div>
+    </div>
+    <div class="mactions">
+      <button class="btn-sec" onclick="closeModal('reg-modal')">取消</button>
+      <button class="btn-prim" id="btn-submit-reg" onclick="submitReg()">確認報名</button>
+    </div>
+  </div>
+</div>
+
+<!-- 取消報名 Modal -->
+<div class="overlay" id="cancel-modal">
+  <div class="modal">
+    <h2 id="cm-name"></h2><p class="msub" id="cm-date"></p>
+    <div class="fg">
+      <label>請輸入您的姓名以取消報名</label>
+      <input class="fi" id="cm-input" placeholder="姓名"/>
+      <div class="hint">請確認姓名與報名時相同</div>
+    </div>
+    <div class="mactions">
+      <button class="btn-sec" onclick="closeModal('cancel-modal')">返回</button>
+      <button class="btn-danger" id="btn-submit-cancel" onclick="submitCancel()">確認取消報名</button>
+    </div>
+  </div>
+</div>
+
+<!-- 名單 Modal -->
+<div class="overlay" id="list-modal">
+  <div class="modal" style="width:390px">
+    <h2 id="lm-title">報名名單</h2><p class="msub" id="lm-sub"></p>
+    <ul class="rlist" id="rlist-ul"></ul>
+    <div style="display:flex;gap:8px">
+      <button class="btn-sec" style="flex:1" onclick="closeModal('list-modal')">關閉</button>
+      <button class="btn-prim" onclick="exportCSV()">匯出 CSV</button>
+      <button class="btn-prim" onclick="exportPDF()" style="background:#185FA5">匯出 PDF</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- Firebase Compat SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+
+<script>
+// ═══════════════════════════════════════════
+//  請將下方換成您自己的 Firebase 設定
+// ═══════════════════════════════════════════
+var FIREBASE_CONFIG = {
+  apiKey: "AIzaSyCKauPoA5GkuxWM-RCh3rUIvx4FEn08uw4",
+  authDomain: "tc42195signup.firebaseapp.com",
+  databaseURL: "https://tc42195signup-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "tc42195signup",
+  storageBucket: "tc42195signup.firebasestorage.app",
+  messagingSenderId: "696833041018",
+  appId: "1:696833041018:web:a4d3a6d9f94c4da8d751c3"
+};
+// ═══════════════════════════════════════════
+
+var ADMIN_PASSWORD = '42195@tc';
+var TAGS = {
+  meeting:{label:'例會',cls:'tag-meeting'},
+  run:{label:'跑步',cls:'tag-run'},
+  social:{label:'聯誼',cls:'tag-social'},
+  trip:{label:'旅遊',cls:'tag-trip'},
+  race:{label:'賽事',cls:'tag-race'},
+  other:{label:'其它',cls:'tag-other'}
+};
+var DEFAULT_DATA = [
+  {id:1,name:'週六晨跑訓練',date:'2026-05-09',type:'run',desc:'大坑步道，約12公里',max:30,visible:true,registrants:[]},
+  {id:2,name:'五月份例會',date:'2026-05-11',type:'meeting',desc:'社務報告及活動討論',max:null,visible:true,registrants:[]},
+  {id:3,name:'溪頭一日遊',date:'2026-05-24',type:'trip',desc:'溪頭自然教育園區',max:25,visible:true,registrants:[]}
+];
+
+var adminUnlocked = false;
+var regTargetId = null, cancelTargetId = null, listTargetId = null;
+var db = null;
+var activitiesCache = null;
+var isFirebaseReady = false;
+var currentView = 'front';
+
+// ── Firebase 初始化 ──
+function initFirebase() {
+  try {
+    firebase.initializeApp(FIREBASE_CONFIG);
+    db = firebase.database();
+    document.getElementById('sync-badge').style.display = 'none';
+
+    db.ref('activities').on('value', function(snapshot) {
+      if (snapshot.exists()) {
+        activitiesCache = snapshot.val();
+      } else {
+        db.ref('activities').set(DEFAULT_DATA);
+        activitiesCache = JSON.parse(JSON.stringify(DEFAULT_DATA));
+      }
+      isFirebaseReady = true;
+      document.getElementById('sync-badge').style.display = 'inline-flex';
+      if (currentView === 'front') renderFront();
+      else if (currentView === 'admin' && adminUnlocked) renderAdminTable();
+    }, function(error) {
+      console.error('Firebase error:', error);
+      activitiesCache = loadLocal();
+      renderFront();
+    });
+  } catch(e) {
+    console.error('Firebase init error:', e);
+    activitiesCache = loadLocal();
+    renderFront();
+  }
+}
+
+// ── 資料工具 ──
+function toArr(raw) {
+  if (!raw) return [];
+  if (Array.isArray(raw)) return raw.filter(Boolean);
+  return Object.values(raw).filter(Boolean);
+}
+function getActs() {
+  return toArr(activitiesCache !== null ? activitiesCache : loadLocal());
+}
+function saveActs(acts, callback) {
+  var arr = toArr(acts);
+  activitiesCache = arr;
+  if (isFirebaseReady && db) {
+    db.ref('activities').set(arr, function(err) {
+      if (err) { saveLocal(arr); showToast('⚠️ 雲端同步失敗'); }
+      if (callback) callback();
+    });
+  } else {
+    saveLocal(arr);
+    if (callback) callback();
+  }
+}
+function loadLocal() {
+  try { var r = localStorage.getItem('tcm_v5'); return r ? JSON.parse(r) : JSON.parse(JSON.stringify(DEFAULT_DATA)); }
+  catch(e) { return JSON.parse(JSON.stringify(DEFAULT_DATA)); }
+}
+function saveLocal(a) {
+  try { localStorage.setItem('tcm_v5', JSON.stringify(a)); } catch(e) {}
+}
+function nextId(a) { return a.length ? Math.max.apply(null, a.map(function(x){return x.id;})) + 1 : 1; }
+function regs(a) { return a.registrants || []; }
+
+// ── 工具 UI ──
+function showToast(msg) {
+  var t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(function(){ t.classList.remove('show'); }, 2500);
+}
+function fmtDate(d) {
+  var dt = new Date(d + 'T00:00:00');
+  return (dt.getMonth()+1) + '月' + dt.getDate() + '日（' + ['日','一','二','三','四','五','六'][dt.getDay()] + '）';
+}
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+function setBtn(id, disabled) { var b = document.getElementById(id); if(b) b.disabled = disabled; }
+
+// ── 頁面切換 ──
+function switchView(v) {
+  currentView = v;
+  document.querySelectorAll('.view').forEach(function(e){ e.classList.remove('active'); });
+  document.querySelectorAll('.nav-tab').forEach(function(e){ e.classList.remove('active'); });
+  document.getElementById('view-' + v).classList.add('active');
+  document.querySelectorAll('.nav-tab')[v === 'front' ? 0 : 1].classList.add('active');
+  v === 'front' ? renderFront() : renderAdmin();
+}
+
+// ── 前台 ──
+function renderFront() {
+  var el = document.getElementById('view-front');
+  if (!isFirebaseReady && activitiesCache === null) {
+    el.innerHTML = '<div class="empty">⏳ 載入中…</div>'; return;
+  }
+  var acts = getActs().filter(function(a){ return a.visible !== false; })
+                      .sort(function(a,b){ return a.date.localeCompare(b.date); });
+  if (!acts.length) { el.innerHTML = '<div class="empty">目前尚無開放報名活動</div>'; return; }
+  el.innerHTML = '<p class="sec-title">目前開放報名活動</p><div class="activity-grid">' +
+    acts.map(function(a) {
+      var tag = TAGS[a.type] || TAGS.other;
+      var cnt = regs(a).length;
+      var full = a.max && cnt >= a.max;
+      var pct = a.max ? Math.min(100, Math.round(cnt / a.max * 100)) : 0;
+      var names = regs(a).map(function(r){ return '<span class="nbadge">' + r.name + '</span>'; }).join('');
+      return '<div class="card ctype-' + a.type + '">' +
+        '<div class="card-head">' +
+          '<span class="atag ' + tag.cls + '">' + tag.label + '</span>' +
+          '<div class="card-title">' + a.name + '</div>' +
+          '<div class="card-sub">' + fmtDate(a.date) + (a.desc ? ' · ' + a.desc : '') + '</div>' +
+          ((a.location || a.mapUrl) ? '<div class="card-location">' +
+            (a.location ? '<span>📍 ' + a.location + '</span>' : '') +
+            (a.mapUrl ? '<a href="' + a.mapUrl + '" target="_blank" rel="noopener">Google 地圖</a>' : '') +
+          '</div>' : '') +
+        '</div>' +
+        '<div class="card-body">' +
+          '<div class="prog-row">' +
+            '<span class="prog-label">' + (a.max ? '名額 ' + cnt + ' / ' + a.max : '已報名 ' + cnt + ' 人') + '</span>' +
+            (full ? '<span style="font-size:11px;color:var(--c-danger)">已額滿</span>' : '') +
+          '</div>' +
+          (a.max ? '<div class="prog-bar"><div class="prog-fill' + (full ? ' full' : '') + '" style="width:' + pct + '%"></div></div>' : '') +
+          '<div class="names-row">' + names + '</div>' +
+          '<div class="card-btns">' +
+            '<button class="reg-btn' + (full ? ' full-btn' : '') + '" ' + (full ? 'disabled' : 'onclick="openReg(' + a.id + ')"') + '>' + (full ? '報名已額滿' : '+ 我要報名') + '</button>' +
+            '<button class="cancel-btn" onclick="openCancel(' + a.id + ')">取消報名</button>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+    }).join('') + '</div>';
+}
+
+// ── 報名 ──
+function openReg(id) {
+  var a = getActs().find(function(x){ return x.id === id; });
+  if (!a) { showToast('找不到活動，請重新整理'); return; }
+  regTargetId = id;
+  document.getElementById('rm-name').textContent = a.name;
+  document.getElementById('rm-date').textContent = fmtDate(a.date);
+  document.getElementById('rg-name').value = '';
+  document.getElementById('rg-note').value = '';
+  document.getElementById('reg-modal').classList.add('open');
+}
+function submitReg() {
+  var name = document.getElementById('rg-name').value.trim();
+  if (!name) { document.getElementById('rg-name').focus(); return; }
+  var type = document.getElementById('rg-type').value;
+  var note = document.getElementById('rg-note').value.trim();
+  setBtn('btn-submit-reg', true);
+  var acts = getActs();
+  var a = acts.find(function(x){ return x.id === regTargetId; });
+  if (!a) { showToast('找不到活動'); setBtn('btn-submit-reg', false); return; }
+  if (regs(a).find(function(r){ return r.name === name; })) {
+    alert('此姓名已報名本活動'); setBtn('btn-submit-reg', false); return;
+  }
+  if (!a.registrants) a.registrants = [];
+  a.registrants.push({name: name, type: type, note: note});
+  saveActs(acts, function() {
+    closeModal('reg-modal');
+    renderFront();
+    showToast('✓ 報名成功：' + name);
+    setBtn('btn-submit-reg', false);
+  });
+}
+
+// ── 取消報名 ──
+function openCancel(id) {
+  var a = getActs().find(function(x){ return x.id === id; });
+  if (!a) { showToast('找不到活動，請重新整理'); return; }
+  cancelTargetId = id;
+  document.getElementById('cm-name').textContent = a.name;
+  document.getElementById('cm-date').textContent = fmtDate(a.date);
+  document.getElementById('cm-input').value = '';
+  document.getElementById('cancel-modal').classList.add('open');
+}
+function submitCancel() {
+  var name = document.getElementById('cm-input').value.trim();
+  if (!name) { document.getElementById('cm-input').focus(); return; }
+  var acts = getActs();
+  var a = acts.find(function(x){ return x.id === cancelTargetId; });
+  if (!a) { showToast('找不到活動'); return; }
+  if (!regs(a).find(function(r){ return r.name === name; })) {
+    var inp = document.getElementById('cm-input');
+    inp.style.borderColor = '#E24B4A'; inp.placeholder = '找不到此姓名，請確認';
+    setTimeout(function(){ inp.style.borderColor = ''; inp.placeholder = '姓名'; }, 2000);
+    return;
+  }
+  setBtn('btn-submit-cancel', true);
+  a.registrants = regs(a).filter(function(r){ return r.name !== name; });
+  saveActs(acts, function() {
+    closeModal('cancel-modal');
+    renderFront();
+    showToast('已取消 ' + name + ' 的報名');
+    setBtn('btn-submit-cancel', false);
+  });
+}
+
+// ── 後台 ──
+function renderAdmin() {
+  var el = document.getElementById('view-admin');
+  if (!adminUnlocked) {
+    el.innerHTML = '<div class="lock-screen"><div class="lock-card">' +
+      '<div class="lock-icon" style="font-size:32px;margin-bottom:.75rem">🔒</div>' +
+      '<h2>後台管理</h2><p>請輸入管理員密碼</p>' +
+      '<input class="fi" id="pw-input" type="password" placeholder="密碼" style="text-align:center"/>' +
+      '<div class="lock-err" id="pw-err"></div>' +
+      '<div style="margin-top:1rem"><button class="btn-prim" id="btn-login" style="width:100%">登入</button></div>' +
+    '</div></div>';
+    document.getElementById('btn-login').onclick = doLogin;
+    document.getElementById('pw-input').onkeydown = function(e){ if(e.key==='Enter') doLogin(); };
+    return;
+  }
+  renderAdminContent();
+}
+
+function doLogin() {
+  var inp = document.getElementById('pw-input');
+  if (!inp) return;
+  if (inp.value === ADMIN_PASSWORD) {
+    adminUnlocked = true;
+    renderAdminContent();
+  } else {
+    document.getElementById('pw-err').textContent = '密碼錯誤，請再試一次';
+  }
+}
+
+function renderAdminContent() {
+  var el = document.getElementById('view-admin');
+  var acts = getActs();
+  var totalReg = acts.reduce(function(s,a){ return s + regs(a).length; }, 0);
+  var visAct = acts.filter(function(a){ return a.visible !== false; }).length;
+  var banner = isFirebaseReady
+    ? '<div class="db-banner db-ok">🟢 Firebase 已連線，所有使用者即時共享資料</div>'
+    : '<div class="db-banner db-err">⚠️ 使用本機儲存，其他使用者無法同步</div>';
+
+  el.innerHTML = '<div class="admin-bar"><button class="btn-logout" onclick="logout()">登出</button></div>' +
+    banner +
+    '<div class="stats-bar">' +
+      '<div class="scard"><div class="snum">' + acts.length + '</div><div class="slbl">活動總數</div></div>' +
+      '<div class="scard"><div class="snum">' + visAct + '</div><div class="slbl">前台顯示中</div></div>' +
+      '<div class="scard"><div class="snum">' + totalReg + '</div><div class="slbl">總報名人次</div></div>' +
+    '</div>' +
+    '<div class="add-form"><h2>新增活動</h2>' +
+      '<div class="g3">' +
+        '<div class="fg"><label>活動名稱</label><input class="fi" id="a-name" placeholder="例：週末長跑"/></div>' +
+        '<div class="fg"><label>活動日期</label><input class="fi" type="date" id="a-date"/></div>' +
+        '<div class="fg"><label>活動類型</label><select class="fs" id="a-type">' +
+          '<option value="meeting">例會</option><option value="run">跑步</option>' +
+          '<option value="social">聯誼</option><option value="trip">旅遊</option>' +
+          '<option value="race">賽事</option><option value="other">其它</option>' +
+        '</select></div>' +
+      '</div>' +
+      '<div class="g2" style="margin-top:8px">' +
+        '<div class="fg"><label>活動說明</label><input class="fi" id="a-desc" placeholder="活動內容…"/></div>' +
+        '<div class="fg"><label>人數上限</label><input class="fi" type="number" id="a-max" placeholder="留空=無限" min="1"/></div>' +
+      '</div>' +
+      '<div class="g2" style="margin-top:8px">' +
+        '<div class="fg"><label>地點</label><input class="fi" id="a-location" placeholder="例：大坑停車場入口"/></div>' +
+        '<div class="fg"><label>Google 地圖連結（選填）</label><input class="fi" id="a-mapurl" placeholder="https://maps.app.goo.gl/…"/></div>' +
+      '</div>' +
+      '<div style="margin-top:10px;display:flex;align-items:center;justify-content:space-between">' +
+        '<div class="toggle-wrap"><label class="toggle"><input type="checkbox" id="a-visible" checked/><span class="slider"></span></label><span class="toggle-label">新增後立即在前台顯示</span></div>' +
+        '<button class="btn-add" id="btn-add-act" onclick="addActivity()">+ 新增活動</button>' +
+      '</div>' +
+    '</div>' +
+    '<div id="admin-table-area"></div>';
+
+  renderAdminTable();
+}
+
+function renderAdminTable() {
+  var area = document.getElementById('admin-table-area');
+  if (!area) return;
+  var acts = getActs();
+  var rows = acts.length ? acts.map(function(a) {
+    var tag = TAGS[a.type] || TAGS.other;
+    var vis = a.visible !== false;
+    return '<tr class="' + (vis ? '' : 'hidden-row') + '">' +
+      '<td><span style="font-weight:500">' + a.name + '</span>' +
+        (a.desc ? '<br><span style="font-size:11px;color:var(--c-sub)">' + a.desc + '</span>' : '') +
+        (a.location ? '<br><span style="font-size:11px;color:var(--c-sub)">📍 ' + a.location + '</span>' : '') +
+        (a.mapUrl ? '<br><a href="' + a.mapUrl + '" target="_blank" style="font-size:11px;color:#185FA5">地圖連結</a>' : '') +
+      '</td>' +
+      '<td style="white-space:nowrap">' + fmtDate(a.date) + '</td>' +
+      '<td><span class="atag ' + tag.cls + '">' + tag.label + '</span></td>' +
+      '<td><span class="bcnt">' + regs(a).length + '</span>' + (a.max ? ' / ' + a.max : '') + '</td>' +
+      '<td><div class="toggle-wrap"><label class="toggle"><input type="checkbox" ' + (vis ? 'checked' : '') + ' onchange="toggleVis(' + a.id + ',this.checked)"/><span class="slider"></span></label>' +
+        '<span class="toggle-label" style="font-size:11px">' + (vis ? '顯示' : '隱藏') + '</span></div></td>' +
+      '<td><div class="action-btns">' +
+        '<button class="btn-sm btn-view" onclick="showList(' + a.id + ')">名單</button>' +
+        '<button class="btn-sm btn-del" onclick="delAct(' + a.id + ')">刪除</button>' +
+      '</div></td>' +
+    '</tr>';
+  }).join('') : '<tr><td colspan="6" class="empty">尚無活動</td></tr>';
+
+  area.innerHTML = '<div class="tbl-wrap"><table>' +
+    '<thead><tr><th>活動名稱</th><th>日期</th><th>類型</th><th>報名</th><th style="min-width:64px">前台顯示</th><th>操作</th></tr></thead>' +
+    '<tbody>' + rows + '</tbody></table></div>';
+}
+
+function toggleVis(id, val) {
+  var acts = getActs();
+  var a = acts.find(function(x){ return x.id === id; });
+  if (!a) return;
+  a.visible = val;
+  saveActs(acts, function(){ showToast(val ? '✓ 已在前台顯示' : '已從前台隱藏'); renderAdminTable(); });
+}
+function logout() { adminUnlocked = false; renderAdmin(); }
+
+function addActivity() {
+  var name = document.getElementById('a-name').value.trim();
+  var date = document.getElementById('a-date').value;
+  if (!name || !date) { alert('請填寫活動名稱與日期'); return; }
+  var maxVal = document.getElementById('a-max').value;
+  setBtn('btn-add-act', true);
+  var acts = getActs();
+  acts.push({
+    id: nextId(acts),
+    name: name,
+    date: date,
+    type: document.getElementById('a-type').value,
+    desc: document.getElementById('a-desc').value.trim(),
+    location: document.getElementById('a-location').value.trim(),
+    mapUrl: document.getElementById('a-mapurl').value.trim(),
+    max: maxVal ? parseInt(maxVal) : null,
+    visible: document.getElementById('a-visible').checked,
+    registrants: []
+  });
+  saveActs(acts, function() {
+    showToast('✓ 活動已新增：' + name);
+    renderAdminContent();
+    setBtn('btn-add-act', false);
+  });
+}
+
+function delAct(id) {
+  if (!confirm('確定要刪除此活動及所有報名資料？')) return;
+  var acts = getActs().filter(function(a){ return a.id !== id; });
+  saveActs(acts, function() { renderAdminContent(); showToast('活動已刪除'); });
+}
+
+function showList(id) {
+  listTargetId = id;
+  var a = getActs().find(function(x){ return x.id === id; });
+  if (!a) return;
+  document.getElementById('lm-title').textContent = a.name + ' 報名名單';
+  document.getElementById('lm-sub').textContent = '共 ' + regs(a).length + ' 人' + (a.max ? ' (上限' + a.max + '人)' : '');
+  var ul = document.getElementById('rlist-ul');
+  ul.innerHTML = regs(a).length
+    ? regs(a).map(function(r, i) {
+        return '<li class="ritem"><span>' + (i+1) + '. ' + r.name + (r.note ? ' · ' + r.note : '') + '</span>' +
+          '<span style="display:flex;align-items:center;gap:6px"><span class="rtype">' + r.type + '</span>' +
+          '<button class="btn-cancel-reg" onclick="adminCancelReg(' + id + ',\'' + r.name.replace(/'/g,"\\'") + '\')">取消報名</button></span></li>';
+      }).join('')
+    : '<li style="text-align:center;padding:1.5rem;color:var(--c-sub);font-size:13px">尚無人報名</li>';
+  document.getElementById('list-modal').classList.add('open');
+}
+
+function adminCancelReg(actId, name) {
+  if (!confirm('確定取消 ' + name + ' 的報名？')) return;
+  var acts = getActs();
+  var a = acts.find(function(x){ return x.id === actId; });
+  if (!a) return;
+  a.registrants = regs(a).filter(function(r){ return r.name !== name; });
+  saveActs(acts, function() { showToast('已取消 ' + name + ' 的報名'); showList(actId); renderAdminTable(); });
+}
+
+function exportCSV() {
+  var a = getActs().find(function(x){ return x.id === listTargetId; });
+  if (!a) return;
+  var rows = [['序號','姓名','身份','備註']].concat(regs(a).map(function(r,i){ return [i+1,r.name,r.type,r.note||'']; }));
+  var csv = '\uFEFF' + rows.map(function(r){ return r.map(function(v){ return '"'+v+'"'; }).join(','); }).join('\n');
+  var blob = new Blob([csv], {type:'text/csv;charset=utf-8'});
+  var url = URL.createObjectURL(blob), lnk = document.createElement('a');
+  lnk.href = url; lnk.download = a.name + '_報名名單.csv'; lnk.click(); URL.revokeObjectURL(url);
+  showToast('CSV 已下載');
+}
+
+function exportPDF() {
+  var a = getActs().find(function(x){ return x.id === listTargetId; });
+  var tag = TAGS[a.type] || TAGS.other;
+  var rows = regs(a).map(function(r,i){ return '<tr><td>'+(i+1)+'</td><td>'+r.name+'</td><td>'+r.type+'</td><td>'+(r.note||'—')+'</td></tr>'; }).join('');
+  var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>'+a.name+' 報名名單</title><style>body{font-family:sans-serif;padding:32px;color:#222}h1{font-size:20px;margin-bottom:4px}.meta{font-size:13px;color:#666;margin-bottom:24px}table{width:100%;border-collapse:collapse;font-size:13px}th{background:#1a3a2a;color:#fff;padding:8px 12px;text-align:left}td{padding:8px 12px;border-bottom:1px solid #e0e0e0}tr:nth-child(even) td{background:#f8f8f8}.footer{margin-top:20px;font-size:11px;color:#999}</style></head><body><h1>'+a.name+'</h1><div class="meta">活動日期：'+fmtDate(a.date)+' ｜ 類型：'+tag.label+' ｜ 報名人數：'+regs(a).length+(a.max?'/'+a.max:'')+'人</div><table><thead><tr><th>序號</th><th>姓名</th><th>身份</th><th>備註</th></tr></thead><tbody>'+(rows||'<tr><td colspan="4" style="text-align:center;color:#999">尚無報名資料</td></tr>')+'</tbody></table><div class="footer">列印時間：'+new Date().toLocaleString('zh-TW')+' ｜ 台中馬拉松社活動報名系統</div><script>window.onload=function(){window.print()}<\/script></body></html>';
+  var w = window.open('','_blank');
+  if (w) { w.document.write(html); w.document.close(); }
+  else showToast('請允許彈出視窗以匯出 PDF');
+}
+
+// ── Modal 背景關閉 ──
+['reg-modal','cancel-modal','list-modal'].forEach(function(id) {
+  document.getElementById(id).addEventListener('click', function(e) {
+    if (e.target === document.getElementById(id)) closeModal(id);
+  });
+});
+
+// ── 啟動 ──
+initFirebase();
+</script>
+</body>
+</html>
